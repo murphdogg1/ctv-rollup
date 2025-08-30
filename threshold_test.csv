@@ -1,0 +1,9 @@
+Campaign Name,Content Title,Content Network Name,Impression,Quartile100
+Threshold Test,Big Show 1,NETFLIX,2000,500
+Threshold Test,Big Show 2,NETFLIX,1500,375
+Threshold Test,Medium Show,FOX,800,200
+Threshold Test,Small Show 1,PEACOCK,300,75
+Threshold Test,Small Show 2,PEACOCK,200,50
+Threshold Test,Tiny Show 1,HULU,150,37
+Threshold Test,Tiny Show 2,HULU,100,25
+Threshold Test,Mini Show,APPLE,50,12

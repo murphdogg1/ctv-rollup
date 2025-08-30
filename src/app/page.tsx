@@ -1,103 +1,287 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { BarChart3, TrendingUp, Eye, Calendar, Upload, BarChart, Tag, Film } from 'lucide-react';
+
+interface Campaign {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+interface DashboardStats {
+  totalCampaigns: number;
+  totalImpressions: number;
+  totalCompletes: number;
+  overallVCR: number;
+  recentCampaigns: Campaign[];
+}
+
+export default function HomePage() {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalCampaigns: 0,
+    totalImpressions: 0,
+    totalCompletes: 0,
+    overallVCR: 0,
+    recentCampaigns: []
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch campaigns
+      const campaignsResponse = await fetch('/api/campaigns');
+      const campaignsData = await campaignsResponse.json();
+      
+      if (campaignsData.success) {
+        const campaigns = campaignsData.campaigns;
+        const totalCampaigns = campaigns.length;
+        
+        // Get recent campaigns (last 5)
+        const recentCampaigns = campaigns
+          .sort((a: Campaign, b: Campaign) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 5);
+        
+        // Calculate totals from all campaigns
+        let totalImpressions = 0;
+        let totalCompletes = 0;
+        
+        // Fetch rollup data for each campaign to get totals
+        for (const campaign of campaigns) {
+          try {
+            const appResponse = await fetch(`/api/campaigns/${campaign.id}/rollup/app`);
+            const appData = await appResponse.json();
+            
+            if (appData.success && appData.rollup) {
+              for (const rollup of appData.rollup) {
+                totalImpressions += rollup.impressions || 0;
+                totalCompletes += rollup.completes || 0;
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to fetch data for campaign ${campaign.id}:`, error);
+          }
+        }
+        
+        const overallVCR = totalImpressions > 0 ? 
+          Math.round((totalCompletes / totalImpressions) * 100 * 100) / 100 : 0;
+        
+        setStats({
+          totalCampaigns,
+          totalImpressions,
+          totalCompletes,
+          overallVCR,
+          recentCampaigns
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">CTV Rollup Dashboard</h1>
+        <p className="text-muted-foreground">
+          Ingest, normalize, and analyze CTV delivery logs with deduplication and rollup reporting.
+        </p>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      {/* Quick Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {isLoading ? '...' : stats.totalCampaigns.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Active campaigns
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Impressions</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {isLoading ? '...' : stats.totalImpressions.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Across all campaigns
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Completes</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {isLoading ? '...' : stats.totalCompletes.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Video completions
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overall VCR</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {isLoading ? '...' : `${stats.overallVCR}%`}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Video completion rate
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Action Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Manage Campaigns</CardTitle>
+            <CardDescription>
+              Upload new CSV files and manage existing campaigns
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/campaigns">
+              <Button className="w-full">
+                <Upload className="w-4 h-4 mr-2" />
+                Go to Campaigns
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Normalize Data</CardTitle>
+            <CardDescription>
+              Map bundles, genres, and content for consistent analysis
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/normalize">
+              <Button className="w-full">
+                <Tag className="w-4 h-4 mr-2" />
+                Manage Mappings
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>View Reports</CardTitle>
+            <CardDescription>
+              Analyze performance by app, genre, and content
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/campaigns">
+              <Button className="w-full">
+                <BarChart className="w-4 h-4 mr-2" />
+                View Campaigns
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Campaigns */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Campaigns</CardTitle>
+            <CardDescription>
+              Latest campaigns added to the system
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {isLoading ? (
+              <div className="text-center py-4 text-muted-foreground">
+                Loading campaigns...
+              </div>
+            ) : stats.recentCampaigns.length > 0 ? (
+              stats.recentCampaigns.map((campaign) => (
+                <div key={campaign.id} className="flex justify-between items-center p-3 rounded-lg border">
+                  <div>
+                    <p className="font-medium">{campaign.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Created {formatDate(campaign.created_at)}
+                    </p>
+                  </div>
+                  <Link href={`/campaigns/${campaign.id}/reports`}>
+                    <Button variant="outline" size="sm">
+                      View Reports
+                    </Button>
+                  </Link>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-4 text-muted-foreground">
+                No campaigns yet. Upload your first CSV file to get started!
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>System Features</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary">CSV/Parquet Import</Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary">Smart Deduplication</Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary">Multi-tier Rollups</Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary">Export to CSV</Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary">Campaign Management</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
