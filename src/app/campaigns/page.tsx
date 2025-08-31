@@ -9,7 +9,7 @@ import { Upload, Plus, Calendar, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Campaign {
-  id: string;
+  campaign_id: string;
   name: string;
   created_at: string;
 }
@@ -191,7 +191,7 @@ export default function CampaignsPage() {
           </Card>
         ) : (
           campaigns.map((campaign) => (
-            <Card key={campaign.id} className="hover:shadow-md transition-shadow">
+            <Card key={campaign.campaign_id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -214,7 +214,7 @@ export default function CampaignsPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" asChild>
-                      <a href={`/campaigns/${campaign.id}/reports`}>
+                      <a href={`/campaigns/${campaign.campaign_id}/reports`}>
                         View Reports
                       </a>
                     </Button>

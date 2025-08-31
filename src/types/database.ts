@@ -1,11 +1,11 @@
 export interface Campaign {
-  id: string
+  campaign_id: string
   campaign_name: string
   created_at: string
 }
 
 export interface CampaignUpload {
-  id: string
+  upload_id: string
   campaign_id: string
   filename: string
   stored_path: string
@@ -13,14 +13,12 @@ export interface CampaignUpload {
 }
 
 export interface CampaignContentRaw {
-  id: string
   campaign_id: string
   campaign_name_src?: string
   content_title: string
   content_network_name: string
   impression: number
   quartile100: number
-  created_at: string
 }
 
 export interface ContentAlias {

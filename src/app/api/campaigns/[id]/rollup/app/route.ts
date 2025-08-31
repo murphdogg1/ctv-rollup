@@ -13,7 +13,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       rollup,
-      campaign: campaign ? { id: campaign.id, name: campaign.campaign_name } : null
+      campaign: campaign ? { id: campaign.campaign_id, name: campaign.campaign_name } : null
     })
   } catch (error) {
     console.error('Failed to fetch app rollup:', error)

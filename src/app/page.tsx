@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { BarChart3, TrendingUp, Eye, Calendar, Upload, BarChart, Tag, Film } from 'lucide-react';
 
 interface Campaign {
-  id: string;
+  campaign_id: string;
   name: string;
   created_at: string;
 }
@@ -59,7 +59,7 @@ export default function HomePage() {
         // Fetch rollup data for each campaign to get totals
         for (const campaign of campaigns) {
           try {
-            const appResponse = await fetch(`/api/campaigns/${campaign.id}/rollup/app`);
+            const appResponse = await fetch(`/api/campaigns/${campaign.campaign_id}/rollup/app`);
             const appData = await appResponse.json();
             
             if (appData.success && appData.rollup) {
@@ -69,7 +69,7 @@ export default function HomePage() {
               }
             }
           } catch (error) {
-            console.error(`Failed to fetch data for campaign ${campaign.id}:`, error);
+            console.error(`Failed to fetch data for campaign ${campaign.campaign_id}:`, error);
           }
         }
         
@@ -237,14 +237,14 @@ export default function HomePage() {
               </div>
             ) : stats.recentCampaigns.length > 0 ? (
               stats.recentCampaigns.map((campaign) => (
-                <div key={campaign.id} className="flex justify-between items-center p-3 rounded-lg border">
+                <div key={campaign.campaign_id} className="flex justify-between items-center p-3 rounded-lg border">
                   <div>
                     <p className="font-medium">{campaign.name}</p>
                     <p className="text-sm text-muted-foreground">
                       Created {formatDate(campaign.created_at)}
                     </p>
                   </div>
-                  <Link href={`/campaigns/${campaign.id}/reports`}>
+                  <Link href={`/campaigns/${campaign.campaign_id}/reports`}>
                     <Button variant="outline" size="sm">
                       View Reports
                     </Button>
