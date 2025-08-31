@@ -112,8 +112,17 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Campaign ingestion failed:', error)
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    
+    // Return more detailed error information for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Detailed error message:', errorMessage)
+    
     return NextResponse.json(
-      { success: false, error: `Campaign ingestion failed: ${error instanceof Error ? error.message : 'Unknown error'}` },
+      { 
+        success: false, 
+        error: `Campaign ingestion failed: ${errorMessage}`,
+        details: error instanceof Error ? error.stack : 'No stack trace'
+      },
       { status: 500 }
     )
   }
