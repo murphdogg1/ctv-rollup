@@ -11,7 +11,7 @@ import { Download, BarChart3, TrendingUp, Eye, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Campaign {
-  id: string;
+  campaign_id: string;
   name: string;
 }
 
