@@ -4,9 +4,16 @@ import { DatabaseService } from '@/lib/database'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Starting campaign ingestion...')
+    
     const formData = await request.formData()
     const file = formData.get('file') as File
     const campaignNameOverride = formData.get('campaignName') as string
+
+    console.log('Form data received:', { 
+      filename: file?.name, 
+      campaignName: campaignNameOverride 
+    })
 
     if (!file) {
       return NextResponse.json(
@@ -26,27 +33,40 @@ export async function POST(request: NextRequest) {
     // Generate campaign name
     const filename = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ")
     const campaignName = campaignNameOverride || filename
+    
+    console.log('Campaign name generated:', campaignName)
 
     // Create campaign in database
+    console.log('Creating campaign in database...')
     const campaign = await DatabaseService.createCampaign(campaignName)
+    console.log('Campaign created successfully:', campaign)
 
     // In Vercel/serverless environment, we don't save files locally
     // Instead, we process the data directly and store in database
     const storedPath = `virtual://${campaign.campaign_id}/${file.name}`
+    console.log('Stored path generated:', storedPath)
 
     // Record upload in database
+    console.log('Creating upload record...')
     const upload = await DatabaseService.createCampaignUpload(
       campaign.campaign_id,
       file.name,
       storedPath
     )
+    console.log('Upload record created successfully:', upload)
 
     // Parse CSV and insert data
+    console.log('Parsing CSV file...')
     const csvText = await file.text()
     const { data: csvData, errors } = Papa.parse(csvText, {
       header: true,
       skipEmptyLines: true,
       transformHeader: (header) => header.trim().toLowerCase()
+    })
+    
+    console.log('CSV parsed:', { 
+      rows: csvData.length, 
+      errors: errors.length 
     })
 
     if (errors.length > 0) {
@@ -54,6 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Transform CSV data for database
+    console.log('Transforming CSV data...')
     const contentData = csvData.map((row: any) => ({
       campaign_id: campaign.campaign_id,
       campaign_name_src: row['campaign name'] || null,
@@ -62,10 +83,15 @@ export async function POST(request: NextRequest) {
       impression: parseInt(row['impression']) || 0,
       quartile100: parseInt(row['quartile100']) || 0
     }))
+    
+    console.log('Content data transformed:', contentData.length, 'rows')
 
     // Insert content data
+    console.log('Inserting content data into database...')
     await DatabaseService.insertContentData(contentData)
+    console.log('Content data inserted successfully')
 
+    console.log('Campaign ingestion completed successfully')
     return NextResponse.json({
       success: true,
       campaign: {
@@ -85,6 +111,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Campaign ingestion failed:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     return NextResponse.json(
       { success: false, error: `Campaign ingestion failed: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
