@@ -121,7 +121,8 @@ export async function POST(request: NextRequest) {
       { 
         success: false, 
         error: `Campaign ingestion failed: ${errorMessage}`,
-        details: error instanceof Error ? error.stack : 'No stack trace'
+        details: error instanceof Error ? error.stack : 'No stack trace',
+        debug: 'Enhanced error handling active'
       },
       { status: 500 }
     )
