@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 import Papa from 'papaparse'
 import { DatabaseService } from '@/lib/database'
 
@@ -32,21 +30,15 @@ export async function POST(request: NextRequest) {
     // Create campaign in database
     const campaign = await DatabaseService.createCampaign(campaignName)
 
-    // Ensure uploads directory exists
-    const uploadsDir = join(process.cwd(), 'uploads', campaign.id)
-    await mkdir(uploadsDir, { recursive: true })
-
-    // Save file
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    const filePath = join(uploadsDir, file.name)
-    await writeFile(filePath, buffer)
+    // In Vercel/serverless environment, we don't save files locally
+    // Instead, we process the data directly and store in database
+    const storedPath = `virtual://${campaign.id}/${file.name}`
 
     // Record upload in database
     const upload = await DatabaseService.createCampaignUpload(
       campaign.id,
       file.name,
-      filePath
+      storedPath
     )
 
     // Parse CSV and insert data
@@ -82,7 +74,7 @@ export async function POST(request: NextRequest) {
       },
       upload: {
         filename: file.name,
-        storedPath: filePath
+        storedPath: storedPath
       },
       content: {
         rowsProcessed: csvData.length,
@@ -94,7 +86,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Campaign ingestion failed:', error)
     return NextResponse.json(
-      { success: false, error: 'Campaign ingestion failed' },
+      { success: false, error: `Campaign ingestion failed: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     )
   }
