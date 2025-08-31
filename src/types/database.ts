@@ -7,7 +7,7 @@ export interface Campaign {
 export interface CampaignUpload {
   upload_id: string
   campaign_id: string
-  filename: string
+  file_name: string
   stored_path: string
   uploaded_at: string
 }

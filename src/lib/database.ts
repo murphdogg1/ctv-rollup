@@ -85,7 +85,7 @@ export class DatabaseService {
         .insert({
           upload_id: uploadId,
           campaign_id: campaignId,
-          filename,
+          file_name: filename,  // Changed from filename to file_name
           stored_path: storedPath
         })
         .select()
