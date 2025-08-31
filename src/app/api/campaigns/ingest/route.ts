@@ -32,11 +32,11 @@ export async function POST(request: NextRequest) {
 
     // In Vercel/serverless environment, we don't save files locally
     // Instead, we process the data directly and store in database
-    const storedPath = `virtual://${campaign.id}/${file.name}`
+    const storedPath = `virtual://${campaign.campaign_id}/${file.name}`
 
     // Record upload in database
     const upload = await DatabaseService.createCampaignUpload(
-      campaign.id,
+      campaign.campaign_id,
       file.name,
       storedPath
     )
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Transform CSV data for database
     const contentData = csvData.map((row: any) => ({
-      campaign_id: campaign.id,
+      campaign_id: campaign.campaign_id,
       campaign_name_src: row['campaign name'] || null,
       content_title: row['content title'] || '',
       content_network_name: row['content network name'] || '',
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       campaign: {
-        id: campaign.id,
+        id: campaign.campaign_id,
         name: campaign.campaign_name
       },
       upload: {
