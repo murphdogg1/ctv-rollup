@@ -16,6 +16,7 @@ export class DatabaseService {
       // Check if we should use local database
       if (process.env.DB_ENGINE === 'local') {
         const campaign = await db.createCampaign(campaignName)
+        // Use the local database's generated ID consistently
         return {
           campaign_id: campaign.campaign_id,
           campaign_name: campaign.campaign_name,
@@ -46,6 +47,11 @@ export class DatabaseService {
 
   static async getCampaigns(): Promise<Campaign[]> {
     try {
+      // Check if we should use local database
+      if (process.env.DB_ENGINE === 'local') {
+        return await db.getCampaigns()
+      }
+      
       const supabase = createServiceClient()
       const { data, error } = await supabase
         .from('campaigns')
@@ -62,6 +68,11 @@ export class DatabaseService {
 
   static async getCampaignById(id: string): Promise<Campaign | null> {
     try {
+      // Check if we should use local database
+      if (process.env.DB_ENGINE === 'local') {
+        return await db.getCampaign(id)
+      }
+      
       const supabase = createServiceClient()
       const { data, error } = await supabase
         .from('campaigns')
@@ -89,9 +100,10 @@ export class DatabaseService {
       // Check if we should use local database
       if (process.env.DB_ENGINE === 'local') {
         const upload = await db.createCampaignUpload(campaignId, filename, storedPath)
+        // Ensure we use the same campaign ID that was passed in
         return {
           upload_id: upload.upload_id,
-          campaign_id: upload.campaign_id,
+          campaign_id: campaignId, // Use the passed campaignId, not upload.campaign_id
           file_name: upload.filename,
           stored_path: upload.stored_path,
           uploaded_at: upload.uploaded_at.toISOString()
