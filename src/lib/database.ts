@@ -80,12 +80,14 @@ export class DatabaseService {
       // Generate a unique upload ID
       const uploadId = this.generateUploadId()
       
+      console.log('Inserting upload record with:', { upload_id: uploadId, campaign_id: campaignId, file_name: filename, stored_path: storedPath })
+      
       const { data, error } = await supabase
         .from('campaign_uploads')
         .insert({
           upload_id: uploadId,
           campaign_id: campaignId,
-          file_name: filename,  // Fixed column name mismatch
+          file_name: filename,  // FIXED: Changed from filename to file_name
           stored_path: storedPath
         })
         .select()
