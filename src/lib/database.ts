@@ -1,4 +1,5 @@
 import { createServiceClient } from './supabase'
+import { db } from '@/server/db'
 import type { 
   Campaign, 
   CampaignUpload, 
@@ -12,6 +13,16 @@ export class DatabaseService {
   // Campaign Management
   static async createCampaign(campaignName: string): Promise<Campaign> {
     try {
+      // Check if we should use local database
+      if (process.env.DB_ENGINE === 'local') {
+        const campaign = await db.createCampaign(campaignName)
+        return {
+          campaign_id: campaign.campaign_id,
+          campaign_name: campaign.campaign_name,
+          created_at: campaign.created_at.toISOString()
+        }
+      }
+      
       const supabase = createServiceClient()
       
       // Generate a unique campaign ID
@@ -75,6 +86,18 @@ export class DatabaseService {
     storedPath: string
   ): Promise<CampaignUpload> {
     try {
+      // Check if we should use local database
+      if (process.env.DB_ENGINE === 'local') {
+        const upload = await db.createCampaignUpload(campaignId, filename, storedPath)
+        return {
+          upload_id: upload.upload_id,
+          campaign_id: upload.campaign_id,
+          file_name: upload.filename,
+          stored_path: upload.stored_path,
+          uploaded_at: upload.uploaded_at.toISOString()
+        }
+      }
+      
       const supabase = createServiceClient()
       
       // Generate a unique upload ID
@@ -103,6 +126,21 @@ export class DatabaseService {
   // Content Data
   static async insertContentData(contentData: Omit<CampaignContentRaw, 'id' | 'created_at'>[]): Promise<void> {
     try {
+      // Check if we should use local database
+      if (process.env.DB_ENGINE === 'local') {
+        // Convert the data format to match local database
+        const localContentData = contentData.map(item => ({
+          campaign_id: item.campaign_id,
+          campaign_name_src: item.campaign_name_src,
+          content_title: item.content_title,
+          content_network_name: item.content_network_name,
+          impression: item.impression,
+          quartile100: item.quartile100
+        }))
+        await db.insertCampaignContent(localContentData)
+        return
+      }
+      
       const supabase = createServiceClient()
       const { error } = await supabase
         .from('campaign_content_raw')
