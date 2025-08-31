@@ -13,9 +13,16 @@ export class DatabaseService {
   static async createCampaign(campaignName: string): Promise<Campaign> {
     try {
       const supabase = createServiceClient()
+      
+      // Generate a unique campaign ID
+      const campaignId = this.generateCampaignId(campaignName)
+      
       const { data, error } = await supabase
         .from('campaigns')
-        .insert({ campaign_name: campaignName })
+        .insert({ 
+          campaign_id: campaignId,
+          campaign_name: campaignName 
+        })
         .select()
         .single()
 
@@ -69,9 +76,14 @@ export class DatabaseService {
   ): Promise<CampaignUpload> {
     try {
       const supabase = createServiceClient()
+      
+      // Generate a unique upload ID
+      const uploadId = this.generateUploadId()
+      
       const { data, error } = await supabase
         .from('campaign_uploads')
         .insert({
+          upload_id: uploadId,
           campaign_id: campaignId,
           filename,
           stored_path: storedPath
@@ -212,5 +224,18 @@ export class DatabaseService {
         genre_map: 0
       }
     }
+  }
+
+  private static generateUploadId(): string {
+    return `upload-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+  }
+
+  private static generateCampaignId(campaignName: string): string {
+    const slug = campaignName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const suffix = Math.random().toString(36).substring(2, 8);
+    return `${slug}-${suffix}`;
   }
 }
