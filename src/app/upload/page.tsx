@@ -49,9 +49,15 @@ export default function UploadPage() {
 
     try {
       const formData = new FormData()
-      files.forEach(file => formData.append('files', file))
+      // For campaigns ingest, we need file and campaignName
+      files.forEach(file => {
+        formData.append('file', file)
+        // Generate campaign name from filename
+        const campaignName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ")
+        formData.append('campaignName', campaignName)
+      })
 
-      const response = await fetch('/api/ingest', {
+      const response = await fetch('/api/campaigns/ingest', {
         method: 'POST',
         body: formData,
       })
@@ -60,16 +66,16 @@ export default function UploadPage() {
         throw new Error(`Upload failed: ${response.statusText}`)
       }
 
-      const result: IngestResponse = await response.json()
+      const result = await response.json()
       setUploadResult(result)
       
       if (result.success) {
-        toast.success(`Successfully ingested ${result.rowsInserted} rows`)
-        if (result.warnings && result.warnings.length > 0) {
-          result.warnings.forEach(warning => toast.warning(warning))
+        toast.success(`Successfully created campaign: ${result.campaign.name}`)
+        if (result.content) {
+          toast.success(`Processed ${result.content.rowsProcessed} rows`)
         }
       } else {
-        toast.error('Upload failed')
+        toast.error(`Upload failed: ${result.error}`)
       }
     } catch (error) {
       console.error('Upload error:', error)
