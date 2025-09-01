@@ -11,7 +11,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Force dynamic rendering and disable static generation completely
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = false;
 export const fetchCache = 'force-no-store';
 
 // Add deployment timestamp to force cache invalidation
