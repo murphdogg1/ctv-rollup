@@ -14,6 +14,9 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
+// Add deployment timestamp to force cache invalidation
+const DEPLOYMENT_TIMESTAMP = '2025-09-01-15-00-DEPLOYMENT-TEST';
+
 interface Campaign {
   campaign_id: string;
   campaign_name: string;
