@@ -9,10 +9,11 @@ import { BarChart3, TrendingUp, Eye, Calendar, Upload, BarChart, Tag, Film, Tras
 import { toast } from 'sonner';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
-// Force dynamic rendering and disable static generation
+// Force dynamic rendering and disable static generation completely
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
+export const runtime = 'edge';
 
 interface Campaign {
   campaign_id: string;
