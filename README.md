@@ -1,5 +1,7 @@
 # CTV Rollup
 
+<!-- Updated for Vercel deployment -->
+
 A production-ready web application for ingesting raw CTV delivery logs (CSV/Parquet), normalizing fields, deduplicating fragmented supply paths, and rendering rollups by App, Genre, and Content—with CSV export.
 
 ## Features

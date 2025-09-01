@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 
 interface Campaign {
   campaign_id: string;
-  name: string;
+  campaign_name: string;
   created_at: string;
 }
 
@@ -46,8 +46,8 @@ export default function CampaignsPage() {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      // Only set campaign name from filename if user has not already entered a custom name
-      if (!campaignName) {
+      // Always set campaign name from filename if it's empty or just whitespace
+      if (!campaignName || campaignName.trim() === '') {
         const nameFromFile = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
         setCampaignName(nameFromFile);
       }
@@ -63,9 +63,10 @@ export default function CampaignsPage() {
     setIsUploading(true);
     const formData = new FormData();
     formData.append('file', selectedFile);
-    if (campaignName) {
-      formData.append('campaignName', campaignName);
-    }
+    
+    // Always ensure we have a campaign name
+    const finalCampaignName = campaignName.trim() || selectedFile.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+    formData.append('campaignName', finalCampaignName);
 
     try {
       const response = await fetch('/api/campaigns/ingest', {
@@ -89,6 +90,30 @@ export default function CampaignsPage() {
       toast.error('Upload failed');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleDeleteCampaign = async (campaignId: string, campaignName: string) => {
+    if (!confirm(`Are you sure you want to delete "${campaignName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(`Campaign "${campaignName}" deleted successfully!`);
+        fetchCampaigns(); // Refresh the list
+      } else {
+        toast.error(result.error || 'Failed to delete campaign');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete campaign');
     }
   };
 
@@ -197,7 +222,7 @@ export default function CampaignsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-semibold">{campaign.name}</h3>
+                        <h3 className="text-xl font-semibold">{campaign.campaign_name}</h3>
                         <Badge variant="secondary">Active</Badge>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -217,6 +242,14 @@ export default function CampaignsPage() {
                       <a href={`/campaigns/${campaign.campaign_id}/reports`}>
                         View Reports
                       </a>
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleDeleteCampaign(campaign.campaign_id, campaign.campaign_name)}
+                      className="text-white bg-red-600 hover:bg-red-700"
+                    >
+                      Delete
                     </Button>
                   </div>
                 </div>

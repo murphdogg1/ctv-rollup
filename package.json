@@ -2,6 +2,8 @@
   "name": "ctv-rollup",
   "version": "0.1.0",
   "private": true,
+  "_comment": "CSS fix deployed - PostCSS config added",
+  "_comment": "Updated for Vercel deployment",
   "engines": {
     "node": ">=20.0.0"
   },

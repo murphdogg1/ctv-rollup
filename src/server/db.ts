@@ -1,74 +1,29 @@
-// Campaign-agnostic database interfaces
-export interface Campaign {
-  campaign_id: string;
-  campaign_name: string;
-  created_at: Date;
-}
+// Import types from the main database types to ensure consistency
+import type {
+  Campaign,
+  CampaignUpload,
+  CampaignContentRaw,
+  ContentAlias,
+  GenreMap,
+  AppRollup,
+  GenreRollup,
+  ContentRollup
+} from '@/types/database'
 
-export interface CampaignUpload {
-  upload_id: string;
-  campaign_id: string;
-  filename: string;
-  stored_path: string;
-  uploaded_at: Date;
-}
-
-export interface CampaignContentRaw {
-  campaign_id: string;
-  campaign_name_src?: string;
-  content_title: string;
-  content_network_name: string;
-  impression: number;
-  quartile100: number;
-}
-
-export interface ContentAlias {
-  content_title_canon: string;
-  content_key: string;
-  created_at: Date;
-}
-
-export interface GenreMap {
-  raw_genre: string;
-  genre_canon: string;
-  created_at: Date;
-}
-
-export interface AppRollup {
-  campaign_id: string;
-  app_name: string;
-  impressions: number;
-  completes: number;
-  avg_vcr: number;
-  content_count: number;
-}
-
-export interface GenreRollup {
-  campaign_id: string;
-  genre_canon: string;
-  impressions: number;
-  completes: number;
-  avg_vcr: number;
-  content_count: number;
-}
-
-export interface ContentRollup {
-  campaign_id: string;
-  content_key: string;
-  content_title: string;
-  content_network_name: string;
-  impressions: number;
-  completes: number;
-  avg_vcr: number;
-}
+// Internal storage types (these match the canonical types exactly)
+type InternalCampaign = Campaign;
+type InternalCampaignUpload = CampaignUpload;
+type InternalCampaignContentRaw = CampaignContentRaw;
+type InternalContentAlias = ContentAlias;
+type InternalGenreMap = GenreMap;
 
 // Global storage outside module scope to persist across reloads
 declare global {
-  var __db_campaigns: Campaign[];
-  var __db_campaign_uploads: CampaignUpload[];
-  var __db_campaign_content_raw: CampaignContentRaw[];
-  var __db_content_aliases: ContentAlias[];
-  var __db_genre_map: GenreMap[];
+  var __db_campaigns: InternalCampaign[];
+  var __db_campaign_uploads: InternalCampaignUpload[];
+  var __db_campaign_content_raw: InternalCampaignContentRaw[];
+  var __db_content_aliases: InternalContentAlias[];
+  var __db_genre_map: InternalGenreMap[];
   var __db_initialized: boolean;
 }
 
@@ -112,7 +67,7 @@ class InMemoryDatabase {
     const campaign: Campaign = {
       campaign_id,
       campaign_name: campaignName,
-      created_at: new Date()
+      created_at: new Date().toISOString()
     };
     global.__db_campaigns.push(campaign);
     console.log(`Created campaign: ${campaignName} with ID: ${campaign_id}`);
@@ -124,14 +79,62 @@ class InMemoryDatabase {
       return [];
     }
     console.log(`Returning ${global.__db_campaigns.length} campaigns`);
-    return global.__db_campaigns;
+    // Create new objects to ensure type compatibility
+    const campaigns = global.__db_campaigns.map(campaign => ({
+      campaign_id: campaign.campaign_id,
+      campaign_name: campaign.campaign_name,
+      created_at: campaign.created_at
+    }));
+    // Explicitly cast to ensure TypeScript sees the correct type
+    return campaigns as Campaign[];
+  }
+
+  // Alternative method that explicitly returns the correct type
+  async getCampaignsTyped(): Promise<Campaign[]> {
+    if (!global.__db_initialized) {
+      return [];
+    }
+    console.log(`Returning ${global.__db_campaigns.length} campaigns (typed)`);
+    const campaigns: Campaign[] = [];
+    for (const campaign of global.__db_campaigns) {
+      campaigns.push({
+        campaign_id: campaign.campaign_id,
+        campaign_name: campaign.campaign_name,
+        created_at: campaign.created_at
+      });
+    }
+    return campaigns;
   }
 
   async getCampaign(campaignId: string): Promise<Campaign | null> {
     if (!global.__db_initialized) {
       return null;
     }
-    return global.__db_campaigns.find(c => c.campaign_id === campaignId) || null;
+    const campaign = global.__db_campaigns.find(c => c.campaign_id === campaignId);
+    if (!campaign) return null;
+    // Create new object to ensure type compatibility
+    const typedCampaign = {
+      campaign_id: campaign.campaign_id,
+      campaign_name: campaign.campaign_name,
+      created_at: campaign.created_at
+    };
+    // Explicitly cast to ensure TypeScript sees the correct type
+    return typedCampaign as Campaign;
+  }
+
+  // Alternative method that explicitly returns the correct type
+  async getCampaignTyped(campaignId: string): Promise<Campaign | null> {
+    if (!global.__db_initialized) {
+      return null;
+    }
+    const campaign = global.__db_campaigns.find(c => c.campaign_id === campaignId);
+    if (!campaign) return null;
+    const typedCampaign: Campaign = {
+      campaign_id: campaign.campaign_id,
+      campaign_name: campaign.campaign_name,
+      created_at: campaign.created_at
+    };
+    return typedCampaign;
   }
 
   // Upload management
@@ -147,9 +150,9 @@ class InMemoryDatabase {
     const upload: CampaignUpload = {
       upload_id: this.generateUploadId(),
       campaign_id: campaignId,
-      filename,
+      file_name: filename,
       stored_path: storedPath,
-      uploaded_at: new Date()
+      uploaded_at: new Date().toISOString()
     };
     global.__db_campaign_uploads.push(upload);
     console.log(`Created upload for campaign ${campaignId}: ${filename}`);
@@ -184,9 +187,10 @@ class InMemoryDatabase {
       global.__db_content_aliases[existing].content_key = contentKey;
     } else {
       global.__db_content_aliases.push({
+        id: Math.random().toString(36).substring(2, 8),
         content_title_canon: contentTitleCanon,
         content_key: contentKey,
-        created_at: new Date()
+        created_at: new Date().toISOString()
       });
     }
   }
@@ -201,9 +205,10 @@ class InMemoryDatabase {
       global.__db_genre_map[existing].genre_canon = genreCanon;
     } else {
       global.__db_genre_map.push({
+        id: Math.random().toString(36).substring(2, 8),
         raw_genre: rawGenre,
         genre_canon: genreCanon,
-        created_at: new Date()
+        created_at: new Date().toISOString()
       });
     }
   }
@@ -461,6 +466,40 @@ class InMemoryDatabase {
     global.__db_content_aliases = [];
     global.__db_genre_map = [];
     global.__db_initialized = false;
+  }
+
+  // Additional methods for compatibility
+  async deleteCampaign(campaignId: string): Promise<void> {
+    if (!global.__db_initialized) {
+      return;
+    }
+    
+    // Remove campaign content first
+    global.__db_campaign_content_raw = global.__db_campaign_content_raw.filter(
+      c => c.campaign_id !== campaignId
+    );
+    
+    // Remove campaign uploads
+    global.__db_campaign_uploads = global.__db_campaign_uploads.filter(
+      u => u.campaign_id !== campaignId
+    );
+    
+    // Finally remove the campaign
+    global.__db_campaigns = global.__db_campaigns.filter(
+      c => c.campaign_id !== campaignId
+    );
+    
+    console.log(`Deleted campaign: ${campaignId}`);
+  }
+
+  async getContentData(campaignId?: string): Promise<CampaignContentRaw[]> {
+    if (!global.__db_initialized) {
+      return [];
+    }
+    if (campaignId) {
+      return global.__db_campaign_content_raw.filter(c => c.campaign_id === campaignId);
+    }
+    return global.__db_campaign_content_raw;
   }
 }
 

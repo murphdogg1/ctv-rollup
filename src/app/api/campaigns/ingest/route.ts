@@ -75,6 +75,8 @@ export async function POST(request: NextRequest) {
 
     // Transform CSV data for database
     console.log('Transforming CSV data...')
+    console.log('Sample CSV row:', csvData[0])
+    
     const contentData = csvData.map((row: any) => ({
       campaign_id: campaign.campaign_id,
       campaign_name_src: row['campaign name'] || null,
@@ -85,6 +87,7 @@ export async function POST(request: NextRequest) {
     }))
     
     console.log('Content data transformed:', contentData.length, 'rows')
+    console.log('Sample transformed row:', contentData[0])
 
     // Insert content data
     console.log('Inserting content data into database...')

@@ -7,12 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, BarChart3, TrendingUp, Eye, Loader2 } from 'lucide-react';
+import { Download, BarChart3, TrendingUp, Eye, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Campaign {
   campaign_id: string;
-  name: string;
+  campaign_name: string;
+  created_at: string;
 }
 
 interface AppRollup {
@@ -104,7 +105,7 @@ export default function CampaignReportsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${campaign?.name || 'campaign'}-${type}-rollup.csv`;
+      a.download = `${campaign?.campaign_name || 'campaign'}-${type}-rollup.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -114,6 +115,33 @@ export default function CampaignReportsPage() {
     } catch (error) {
       console.error('Export error:', error);
       toast.error(`Failed to export ${type} data`);
+    }
+  };
+
+  const handleDeleteCampaign = async () => {
+    if (!campaign) return;
+    
+    if (!confirm(`Are you sure you want to delete "${campaign.campaign_name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(`Campaign "${campaign.campaign_name}" deleted successfully!`);
+        // Redirect to campaigns page
+        window.location.href = '/campaigns';
+      } else {
+        toast.error(result.error || 'Failed to delete campaign');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete campaign');
     }
   };
 
@@ -144,13 +172,23 @@ export default function CampaignReportsPage() {
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">{campaign.name} Reports</h1>
+          <h1 className="text-3xl font-bold">{campaign.campaign_name} Reports</h1>
           <p className="text-muted-foreground">Detailed performance metrics for your campaign</p>
         </div>
-        <Button onClick={() => handleExport(activeTab)}>
-          <Download className="w-4 h-4 mr-2" />
-          Export CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => handleExport(activeTab)}>
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={handleDeleteCampaign}
+            className="text-white bg-red-600 hover:bg-red-700"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete Campaign
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
