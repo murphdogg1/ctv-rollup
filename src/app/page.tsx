@@ -15,7 +15,7 @@ export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
 // Add deployment timestamp to force cache invalidation
-const DEPLOYMENT_TIMESTAMP = '2025-09-01-15-00-DEPLOYMENT-TEST';
+const DEPLOYMENT_TIMESTAMP = '2025-09-01-15-10-FORCE-DEPLOYMENT';
 
 interface Campaign {
   campaign_id: string;
@@ -189,6 +189,9 @@ export default function HomePage() {
           </div>
           <div className="mt-1 text-xs text-blue-600">
             API Status: {apiStatus}
+          </div>
+          <div className="mt-1 text-xs text-purple-600">
+            🚀 DEPLOYMENT: {DEPLOYMENT_TIMESTAMP} - Fresh deployment active!
           </div>
         </div>
 
