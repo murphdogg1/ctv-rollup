@@ -35,6 +35,7 @@ export default function HomePage() {
     userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server'
   });
   console.log('PRODUCTION DEBUG: Component loaded successfully');
+  console.log('TIMESTAMP:', new Date().toISOString());
   
   const [stats, setStats] = useState<DashboardStats>({
     totalCampaigns: 0,
@@ -48,6 +49,14 @@ export default function HomePage() {
   useEffect(() => {
     console.log('useEffect triggered - about to call fetchDashboardStats');
     console.log('PRODUCTION DEBUG: useEffect running');
+    
+    // Test if JavaScript is executing
+    if (typeof window !== 'undefined') {
+      console.log('BROWSER DEBUG: JavaScript is executing in browser');
+      // Uncomment the next line to test if JavaScript is working
+      // alert('JavaScript is working! Check console for details.');
+    }
+    
     setTimeout(() => {
       console.log('Delayed call to fetchDashboardStats');
       fetchDashboardStats();
