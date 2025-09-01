@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { BarChart3, TrendingUp, Eye, Calendar, Upload, BarChart, Tag, Film, Trash2 } from 'lucide-react';
+import { BarChart3, TrendingUp, Eye, Calendar, Upload, BarChart, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -13,7 +13,6 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
-export const runtime = 'edge';
 
 interface Campaign {
   campaign_id: string;
@@ -30,14 +29,7 @@ interface DashboardStats {
 }
 
 export default function HomePage() {
-  console.log('HomePage component rendered at:', new Date().toISOString());
-  console.log('Environment check:', {
-    isClient: typeof window !== 'undefined',
-    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server'
-  });
-  console.log('PRODUCTION DEBUG: Component loaded successfully');
-  console.log('TIMESTAMP:', new Date().toISOString());
-  
+  const [isClient, setIsClient] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalCampaigns: 0,
     totalImpressions: 0,
@@ -46,22 +38,25 @@ export default function HomePage() {
     recentCampaigns: []
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [apiStatus, setApiStatus] = useState('Testing...');
 
   useEffect(() => {
-    console.log('useEffect triggered - about to call fetchDashboardStats');
-    console.log('PRODUCTION DEBUG: useEffect running');
+    setIsClient(true);
+    console.log('HomePage: JavaScript is executing!');
     
-    // Test if JavaScript is executing
-    if (typeof window !== 'undefined') {
-      console.log('BROWSER DEBUG: JavaScript is executing in browser');
-      // Uncomment the next line to test if JavaScript is working
-      // alert('JavaScript is working! Check console for details.');
-    }
-    
-    setTimeout(() => {
-      console.log('Delayed call to fetchDashboardStats');
-      fetchDashboardStats();
-    }, 1000);
+    // Test API connection first
+    fetch('/api/campaigns')
+      .then(response => response.json())
+      .then(data => {
+        console.log('API call successful:', data);
+        setApiStatus(`Connected! Found ${data.campaigns?.length || 0} campaigns`);
+        fetchDashboardStats();
+      })
+      .catch(error => {
+        console.error('API call failed:', error);
+        setApiStatus(`Failed: ${error.message}`);
+        setIsLoading(false);
+      });
   }, []);
 
   const fetchDashboardStats = async () => {
@@ -70,29 +65,15 @@ export default function HomePage() {
       setIsLoading(true);
       console.log('Fetching dashboard stats...');
       
-      // Add error handling for fetch
-      let campaignsResponse;
-      try {
-        console.log('Fetching campaigns from /api/campaigns...');
-        campaignsResponse = await fetch('/api/campaigns');
-        console.log('Campaigns response status:', campaignsResponse.status);
-      } catch (fetchError) {
-        console.error('Fetch error:', fetchError);
-        throw new Error('Failed to fetch campaigns');
-      }
+      const campaignsResponse = await fetch('/api/campaigns');
+      console.log('Campaigns response status:', campaignsResponse.status);
       
       if (!campaignsResponse.ok) {
         throw new Error(`HTTP error! status: ${campaignsResponse.status}`);
       }
       
-      let campaignsData;
-      try {
-        campaignsData = await campaignsResponse.json();
-        console.log('Campaigns data:', campaignsData);
-      } catch (jsonError) {
-        console.error('JSON parse error:', jsonError);
-        throw new Error('Failed to parse campaigns data');
-      }
+      const campaignsData = await campaignsResponse.json();
+      console.log('Campaigns data:', campaignsData);
       
       if (campaignsData.success) {
         const campaigns = campaignsData.campaigns;
@@ -137,7 +118,6 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
-      // Set some default data to show the UI is working
       setStats({
         totalCampaigns: 0,
         totalImpressions: 0,
@@ -178,6 +158,21 @@ export default function HomePage() {
     }
   };
 
+  if (!isClient) {
+    return (
+      <ErrorBoundary>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">CTV Rollup Dashboard</h1>
+            <p className="text-muted-foreground">
+              Loading...
+            </p>
+          </div>
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <div className="space-y-6">
@@ -186,9 +181,11 @@ export default function HomePage() {
           <p className="text-muted-foreground">
             Ingest, normalize, and analyze CTV delivery logs with deduplication and rollup reporting.
           </p>
-          <div className="mt-2 text-xs text-blue-600">
-            React Client: {typeof window !== 'undefined' ? 'HYDRATED' : 'SERVER'} | 
-            Time: {new Date().toLocaleTimeString()}
+          <div className="mt-2 text-xs text-green-600">
+            ✅ JavaScript is working! Client-side rendering active.
+          </div>
+          <div className="mt-1 text-xs text-blue-600">
+            API Status: {apiStatus}
           </div>
         </div>
 
@@ -347,14 +344,6 @@ export default function HomePage() {
                         View Reports
                       </Button>
                     </Link>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleDeleteCampaign(campaign.campaign_id, campaign.campaign_name)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
                   </div>
                 </div>
               ))
