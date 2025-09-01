@@ -5,11 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { BarChart3, TrendingUp, Eye, Calendar, Upload, BarChart, Tag, Film } from 'lucide-react';
+import { BarChart3, TrendingUp, Eye, Calendar, Upload, BarChart, Tag, Film, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import ErrorBoundary from '@/components/ErrorBoundary';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 
 interface Campaign {
   campaign_id: string;
-  name: string;
+  campaign_name: string;
   created_at: string;
 }
 
@@ -22,6 +27,13 @@ interface DashboardStats {
 }
 
 export default function HomePage() {
+  console.log('HomePage component rendered at:', new Date().toISOString());
+  console.log('Environment check:', {
+    isClient: typeof window !== 'undefined',
+    userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server'
+  });
+  console.log('PRODUCTION DEBUG: Component loaded successfully');
+  
   const [stats, setStats] = useState<DashboardStats>({
     totalCampaigns: 0,
     totalImpressions: 0,
@@ -32,16 +44,43 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardStats();
+    console.log('useEffect triggered - about to call fetchDashboardStats');
+    console.log('PRODUCTION DEBUG: useEffect running');
+    setTimeout(() => {
+      console.log('Delayed call to fetchDashboardStats');
+      fetchDashboardStats();
+    }, 1000);
   }, []);
 
   const fetchDashboardStats = async () => {
+    console.log('=== fetchDashboardStats called ===');
     try {
       setIsLoading(true);
+      console.log('Fetching dashboard stats...');
       
-      // Fetch campaigns
-      const campaignsResponse = await fetch('/api/campaigns');
-      const campaignsData = await campaignsResponse.json();
+      // Add error handling for fetch
+      let campaignsResponse;
+      try {
+        console.log('Fetching campaigns from /api/campaigns...');
+        campaignsResponse = await fetch('/api/campaigns');
+        console.log('Campaigns response status:', campaignsResponse.status);
+      } catch (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw new Error('Failed to fetch campaigns');
+      }
+      
+      if (!campaignsResponse.ok) {
+        throw new Error(`HTTP error! status: ${campaignsResponse.status}`);
+      }
+      
+      let campaignsData;
+      try {
+        campaignsData = await campaignsResponse.json();
+        console.log('Campaigns data:', campaignsData);
+      } catch (jsonError) {
+        console.error('JSON parse error:', jsonError);
+        throw new Error('Failed to parse campaigns data');
+      }
       
       if (campaignsData.success) {
         const campaigns = campaignsData.campaigns;
@@ -86,6 +125,14 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
+      // Set some default data to show the UI is working
+      setStats({
+        totalCampaigns: 0,
+        totalImpressions: 0,
+        totalCompletes: 0,
+        overallVCR: 0,
+        recentCampaigns: []
+      });
     } finally {
       setIsLoading(false);
     }
@@ -95,14 +142,43 @@ export default function HomePage() {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const handleDeleteCampaign = async (campaignId: string, campaignName: string) => {
+    if (!confirm(`Are you sure you want to delete "${campaignName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(`Campaign "${campaignName}" deleted successfully!`);
+        fetchDashboardStats(); // Refresh the dashboard
+      } else {
+        toast.error(result.error || 'Failed to delete campaign');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete campaign');
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">CTV Rollup Dashboard</h1>
-        <p className="text-muted-foreground">
-          Ingest, normalize, and analyze CTV delivery logs with deduplication and rollup reporting.
-        </p>
-      </div>
+    <ErrorBoundary>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">CTV Rollup Dashboard</h1>
+          <p className="text-muted-foreground">
+            Ingest, normalize, and analyze CTV delivery logs with deduplication and rollup reporting.
+          </p>
+          <div className="mt-2 text-xs text-blue-600">
+            React Client: {typeof window !== 'undefined' ? 'HYDRATED' : 'SERVER'} | 
+            Time: {new Date().toLocaleTimeString()}
+          </div>
+        </div>
 
       {/* Quick Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -234,21 +310,40 @@ export default function HomePage() {
             {isLoading ? (
               <div className="text-center py-4 text-muted-foreground">
                 Loading campaigns...
+                <button 
+                  onClick={() => {
+                    console.log('Test button clicked');
+                    fetchDashboardStats();
+                  }}
+                  className="ml-4 px-2 py-1 bg-blue-500 text-white rounded text-xs"
+                >
+                  Test API
+                </button>
               </div>
             ) : stats.recentCampaigns.length > 0 ? (
               stats.recentCampaigns.map((campaign) => (
                 <div key={campaign.campaign_id} className="flex justify-between items-center p-3 rounded-lg border">
                   <div>
-                    <p className="font-medium">{campaign.name}</p>
+                    <p className="font-medium">{campaign.campaign_name}</p>
                     <p className="text-sm text-muted-foreground">
                       Created {formatDate(campaign.created_at)}
                     </p>
                   </div>
-                  <Link href={`/campaigns/${campaign.campaign_id}/reports`}>
-                    <Button variant="outline" size="sm">
-                      View Reports
+                  <div className="flex gap-2">
+                    <Link href={`/campaigns/${campaign.campaign_id}/reports`}>
+                      <Button variant="outline" size="sm">
+                        View Reports
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleDeleteCampaign(campaign.campaign_id, campaign.campaign_name)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </Button>
-                  </Link>
+                  </div>
                 </div>
               ))
             ) : (
@@ -282,6 +377,7 @@ export default function HomePage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
